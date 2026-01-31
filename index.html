@@ -5,11 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NV 20 Number Challenge</title>
     <style>
-        /* --- ESTILOS GERAIS (CSS) --- */
         :root {
             --bg-color: #121212;
             --box-color: #2C2C2C;
-            --valid-color: #1B5E20; /* Verde Suave */
+            --valid-color: #1B5E20;
             --text-color: #FFFFFF;
             --indicator-color: #666666;
             --error-color: #FF1744;
@@ -30,7 +29,6 @@
             flex-direction: column;
         }
 
-        /* --- BOTÕES --- */
         button {
             border: none;
             border-radius: 6px;
@@ -67,7 +65,6 @@
             margin-top: 15px;
         }
 
-        /* --- CONTAINER PRINCIPAL --- */
         #app {
             flex: 1;
             display: flex;
@@ -77,9 +74,8 @@
             width: 100%;
         }
 
-        /* --- LAYOUT NORMAL (Alternativo - Empilhado) --- */
         #layout-normal {
-            display: none; /* Oculto inicialmente */
+            display: none;
             flex-direction: column;
             align-items: center;
             height: 100%;
@@ -87,9 +83,8 @@
             box-sizing: border-box;
         }
 
-        /* --- LAYOUT TIKTOK (Principal - HUD Centralizado) --- */
         #layout-tiktok {
-            display: flex; /* Visível inicialmente */
+            display: flex;
             justify-content: center;
             align-items: center;
             height: 100%;
@@ -99,7 +94,7 @@
         .tiktok-wrapper {
             display: flex;
             width: 100%;
-            max-width: 1200px; /* Largura ajustada para layout vertical */
+            max-width: 1200px;
             height: 95%;
             gap: 25px;
         }
@@ -115,9 +110,6 @@
         .hud-center { flex: 1; justify-content: center; }
         .hud-right { width: 180px; flex-shrink: 0; justify-content: center; }
 
-        /* --- COMPONENTES --- */
-        
-        /* Número Gerado */
         .display-number {
             font-size: 56px;
             font-weight: bold;
@@ -126,7 +118,6 @@
         }
         .normal .display-number { font-size: 40px; }
 
-        /* Status */
         .status-text {
             font-size: 16px;
             color: #888;
@@ -135,7 +126,6 @@
             margin-bottom: 15px;
         }
 
-        /* --- GRID DE QUADRADOS --- */
         .grid-container {
             display: grid;
             gap: 6px;
@@ -155,8 +145,8 @@
             border-radius: 6px;
             user-select: none;
             transition: background-color 0.2s;
-            min-height: 50px; /* Altura confortável */
-            min-width: 50px;  /* Largura confortável */
+            min-height: 50px;
+            min-width: 50px;
         }
 
         .quad.occupied {
@@ -173,7 +163,6 @@
         }
         .quad.valid:hover { filter: brightness(1.2); }
 
-        /* Configuração do Grid */
         .grid-normal {
             grid-template-columns: repeat(5, 1fr);
             grid-template-rows: repeat(4, 1fr);
@@ -181,19 +170,14 @@
             height: 100%;
         }
 
-        /* NOVO GRID TIKTOK: VERTICAL (2 Colunas x 10 Linhas) */
         .grid-tiktok {
-            /* 2 Colunas (Esq: 1-10, Dir: 11-20) */
             grid-template-columns: repeat(2, 1fr);
-            /* 10 Linhas */
             grid-template-rows: repeat(10, 1fr);
             width: 100%; 
             height: 100%;
-            /* Limite de largura para não ficar excessivamente largo */
-            max-width: 400px; 
+            max-width: 400px;
         }
 
-        /* --- SCOREBOARD --- */
         #scoreboard-container {
             display: flex;
             flex-direction: column;
@@ -257,21 +241,17 @@
     <!-- === LAYOUT TIKTOK (PRINCIPAL) === -->
     <div id="layout-tiktok" class="tiktok">
         
-        <!-- Wrapper Centralizante -->
         <div class="tiktok-wrapper">
             
-            <!-- Esquerda: Score -->
             <div class="hud-left">
                 <div class="score-title">RECORDS</div>
                 <ul id="list-t" class="score-list"></ul>
             </div>
             
-            <!-- Centro: Grid (Vertical) -->
             <div class="hud-center">
                 <div class="grid-container grid-tiktok" id="grid-t"></div>
             </div>
             
-            <!-- Direita: Gerador -->
             <div class="hud-right">
                 <div id="disp-t" class="display-number"></div>
                 <button class="btn-generate" id="btn-generate-t" onclick="gerarNumero()">GERAR<br>NÚMERO</button>
@@ -280,7 +260,6 @@
             </div>
 
         </div>
-        <!-- Botão de troca na parte inferior -->
         <div style="display: flex; justify-content: center; width: 100%;">
             <button class="btn-layout" onclick="toggleLayout()">🔄 Layout (Alternativo)</button>
         </div>
@@ -289,16 +268,13 @@
 </div>
 
 <script>
-    // --- ESTADO DO JOGO ---
     let occupied = {}; 
     let generatedNumber = null;
     let validIndices = [];
     let gameOver = false;
     let scores = [];
-    // Começa no TIKTOK (Principal)
     let layoutMode = 'tiktok';
 
-    // --- ELEMENTOS DO DOM ---
     const dispN = document.getElementById('disp-n');
     const dispT = document.getElementById('disp-t');
     
@@ -315,11 +291,8 @@
     const gridN = document.getElementById('grid-n');
     const gridT = document.getElementById('grid-t');
 
-    // --- INICIALIZAÇÃO ---
     desenharGrid();
     atualizarScoreboard();
-
-    // --- LÓGICA PRINCIPAL ---
 
     function toggleLayout() {
         layoutMode = (layoutMode === 'normal') ? 'tiktok' : 'normal';
@@ -340,12 +313,10 @@
         gridT.innerHTML = '';
 
         for (let i = 0; i < 20; i++) {
-            // Quadrado Layout Normal
             let quadN = document.createElement('div');
             configurarQuadro(quadN, i, 'normal');
             gridN.appendChild(quadN);
 
-            // Quadrado Layout TikTok
             let quadT = document.createElement('div');
             configurarQuadro(quadT, i, 'tiktok');
             gridT.appendChild(quadT);
@@ -354,24 +325,18 @@
 
     function configurarQuadro(element, i, mode) {
         element.className = 'quad';
-        
-        // Remove posicionamento explícito antigo
         element.style.gridRow = 'auto';
         element.style.gridColumn = 'auto';
 
         if (mode === 'tiktok') {
-            // LÓGICA VERTICAL: 2 Colunas (Esq: 1-10, Dir: 11-20)
             let col, row;
             if (i < 10) {
-                // Indices 0 a 9 (Números 1-10) -> Coluna Esquerda (Col 1)
-                col = 1;
-                row = i + 1; // Linhas 1 a 10
+                col = 1; // Esquerda
+                row = i + 1;
             } else {
-                // Indices 10 a 19 (Números 11-20) -> Coluna Direita (Col 2)
-                col = 2;
-                row = (i - 10) + 1; // Linhas 1 a 10
+                col = 2; // Direita
+                row = (i - 10) + 1;
             }
-            
             element.style.gridRow = row;
             element.style.gridColumn = col;
         }
@@ -391,7 +356,6 @@
 
     function gerarNumero() {
         if (gameOver) return;
-
         generatedNumber = Math.floor(Math.random() * 999) + 1;
         
         dispN.textContent = generatedNumber;
@@ -439,7 +403,6 @@
 
     function colocarNumero(idx) {
         if (gameOver || !validIndices.includes(idx)) return;
-
         occupied[idx] = generatedNumber;
         generatedNumber = null;
         validIndices = [];
