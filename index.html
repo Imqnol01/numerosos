@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NV 20 Number Challenge</title>
+    <style>
+        /* --- ESTILOS GERAIS (CSS) --- */
+        :root {
+            --bg-color: #121212;
+            --box-color: #2C2C2C;
+            --valid-color: #1B5E20; /* Verde Suave */
+            --text-color: #FFFFFF;
+            --indicator-color: #666666;
+            --error-color: #FF1744;
+            --accent-color: #2979FF;
+            --highlight-text: #A5D6A7;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- BOTÕES --- */
+        button {
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s, transform 0.1s;
+        }
+        
+        button:active { transform: scale(0.96); }
+
+        .btn-layout {
+            background-color: #444;
+            color: white;
+            font-size: 12px;
+            padding: 4px 8px;
+            margin: 8px;
+        }
+
+        .btn-generate {
+            background-color: var(--accent-color);
+            color: white;
+            font-size: 18px;
+            padding: 12px 24px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .btn-generate:disabled { background-color: #333; color: #888; cursor: not-allowed; }
+
+        .btn-restart {
+            background-color: #333;
+            color: white;
+            font-size: 14px;
+            padding: 10px;
+            margin-top: 15px;
+        }
+
+        /* --- CONTAINER PRINCIPAL --- */
+        #app {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            width: 100%;
+        }
+
+        /* --- LAYOUT NORMAL (Alternativo - Empilhado) --- */
+        #layout-normal {
+            display: none; /* Oculto inicialmente */
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* --- LAYOUT TIKTOK (Principal - HUD Centralizado) --- */
+        #layout-tiktok {
+            display: flex; /* Visível inicialmente */
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+        }
+
+        .tiktok-wrapper {
+            display: flex;
+            width: 100%;
+            max-width: 1200px; /* Largura ajustada para layout vertical */
+            height: 95%;
+            gap: 25px;
+        }
+
+        .hud-left, .hud-center, .hud-right {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            align-items: center;
+        }
+
+        .hud-left { width: 120px; flex-shrink: 0; justify-content: center; }
+        .hud-center { flex: 1; justify-content: center; }
+        .hud-right { width: 180px; flex-shrink: 0; justify-content: center; }
+
+        /* --- COMPONENTES --- */
+        
+        /* Número Gerado */
+        .display-number {
+            font-size: 56px;
+            font-weight: bold;
+            margin: 15px 0;
+            text-align: center;
+        }
+        .normal .display-number { font-size: 40px; }
+
+        /* Status */
+        .status-text {
+            font-size: 16px;
+            color: #888;
+            text-align: center;
+            min-height: 24px;
+            margin-bottom: 15px;
+        }
+
+        /* --- GRID DE QUADRADOS --- */
+        .grid-container {
+            display: grid;
+            gap: 6px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .quad {
+            background-color: var(--box-color);
+            color: var(--indicator-color);
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: default;
+            border-radius: 6px;
+            user-select: none;
+            transition: background-color 0.2s;
+            min-height: 50px; /* Altura confortável */
+            min-width: 50px;  /* Largura confortável */
+        }
+
+        .quad.occupied {
+            background-color: #444;
+            color: white;
+            font-size: 32px;
+            cursor: default;
+        }
+        
+        .quad.valid {
+            background-color: var(--valid-color);
+            color: var(--highlight-text);
+            cursor: pointer;
+        }
+        .quad.valid:hover { filter: brightness(1.2); }
+
+        /* Configuração do Grid */
+        .grid-normal {
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            max-width: 600px;
+            height: 100%;
+        }
+
+        /* NOVO GRID TIKTOK: VERTICAL (2 Colunas x 10 Linhas) */
+        .grid-tiktok {
+            /* 2 Colunas (Esq: 1-10, Dir: 11-20) */
+            grid-template-columns: repeat(2, 1fr);
+            /* 10 Linhas */
+            grid-template-rows: repeat(10, 1fr);
+            width: 100%; 
+            height: 100%;
+            /* Limite de largura para não ficar excessivamente largo */
+            max-width: 400px; 
+        }
+
+        /* --- SCOREBOARD --- */
+        #scoreboard-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .score-list {
+            list-style: none;
+            padding: 0;
+            margin: 5px 0 20px 0;
+            width: 100%;
+            background-color: #222;
+            border-radius: 4px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+        }
+
+        .score-item {
+            padding: 6px;
+            border-bottom: 1px solid #333;
+            font-size: 16px;
+        }
+        .score-item:last-child { border-bottom: none; }
+
+        .tiktok .hud-left .score-list {
+            font-size: 14px;
+            height: 100%;
+            overflow-y: auto;
+            background-color: transparent;
+            text-align: center;
+        }
+        .tiktok .hud-left .score-title { display: none; }
+
+    </style>
+</head>
+<body>
+
+<div id="app">
+    
+    <!-- === LAYOUT NORMAL (Alternativo) === -->
+    <div id="layout-normal">
+        <button class="btn-layout" onclick="toggleLayout()">🔄 Layout (HUD Principal)</button>
+        
+        <div id="disp-n" class="display-number"></div>
+        <div id="status-n" class="status-text">Clique em Gerar Número</div>
+        
+        <button class="btn-generate" id="btn-generate-n" onclick="gerarNumero()">GERAR NÚMERO</button>
+        
+        <div class="grid-container grid-normal" id="grid-n"></div>
+        
+        <div id="scoreboard-container">
+            <div class="score-title" style="color:#555; font-weight:bold; width:100%; text-align:left; padding-left:10px;">ÚLTIMAS 10 PARTIDAS</div>
+            <ul id="list-n" class="score-list"></ul>
+        </div>
+        
+        <button class="btn-restart" onclick="reiniciarJogo()">REINICIAR JOGO</button>
+    </div>
+
+    <!-- === LAYOUT TIKTOK (PRINCIPAL) === -->
+    <div id="layout-tiktok" class="tiktok">
+        
+        <!-- Wrapper Centralizante -->
+        <div class="tiktok-wrapper">
+            
+            <!-- Esquerda: Score -->
+            <div class="hud-left">
+                <div class="score-title">RECORDS</div>
+                <ul id="list-t" class="score-list"></ul>
+            </div>
+            
+            <!-- Centro: Grid (Vertical) -->
+            <div class="hud-center">
+                <div class="grid-container grid-tiktok" id="grid-t"></div>
+            </div>
+            
+            <!-- Direita: Gerador -->
+            <div class="hud-right">
+                <div id="disp-t" class="display-number"></div>
+                <button class="btn-generate" id="btn-generate-t" onclick="gerarNumero()">GERAR<br>NÚMERO</button>
+                <div id="status-t" class="status-text"></div>
+                <button class="btn-restart" onclick="reiniciarJogo()">REINICIAR</button>
+            </div>
+
+        </div>
+        <!-- Botão de troca na parte inferior -->
+        <div style="display: flex; justify-content: center; width: 100%;">
+            <button class="btn-layout" onclick="toggleLayout()">🔄 Layout (Alternativo)</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- ESTADO DO JOGO ---
+    let occupied = {}; 
+    let generatedNumber = null;
+    let validIndices = [];
+    let gameOver = false;
+    let scores = [];
+    // Começa no TIKTOK (Principal)
+    let layoutMode = 'tiktok';
+
+    // --- ELEMENTOS DO DOM ---
+    const dispN = document.getElementById('disp-n');
+    const dispT = document.getElementById('disp-t');
+    
+    const statusN = document.getElementById('status-n');
+    const statusT = document.getElementById('status-t');
+    
+    const listN = document.getElementById('list-n');
+    const listT = document.getElementById('list-t');
+
+    const btnGenN = document.getElementById('btn-generate-n');
+    const btnGenT = document.getElementById('btn-generate-t');
+    const layoutNormal = document.getElementById('layout-normal');
+    const layoutTiktok = document.getElementById('layout-tiktok');
+    const gridN = document.getElementById('grid-n');
+    const gridT = document.getElementById('grid-t');
+
+    // --- INICIALIZAÇÃO ---
+    desenharGrid();
+    atualizarScoreboard();
+
+    // --- LÓGICA PRINCIPAL ---
+
+    function toggleLayout() {
+        layoutMode = (layoutMode === 'normal') ? 'tiktok' : 'normal';
+        
+        if (layoutMode === 'tiktok') {
+            layoutNormal.style.display = 'none';
+            layoutTiktok.style.display = 'flex';
+        } else {
+            layoutTiktok.style.display = 'none';
+            layoutNormal.style.display = 'flex';
+        }
+        
+        desenharGrid();
+    }
+
+    function desenharGrid() {
+        gridN.innerHTML = '';
+        gridT.innerHTML = '';
+
+        for (let i = 0; i < 20; i++) {
+            // Quadrado Layout Normal
+            let quadN = document.createElement('div');
+            configurarQuadro(quadN, i, 'normal');
+            gridN.appendChild(quadN);
+
+            // Quadrado Layout TikTok
+            let quadT = document.createElement('div');
+            configurarQuadro(quadT, i, 'tiktok');
+            gridT.appendChild(quadT);
+        }
+    }
+
+    function configurarQuadro(element, i, mode) {
+        element.className = 'quad';
+        
+        // Remove posicionamento explícito antigo
+        element.style.gridRow = 'auto';
+        element.style.gridColumn = 'auto';
+
+        if (mode === 'tiktok') {
+            // LÓGICA VERTICAL: 2 Colunas (Esq: 1-10, Dir: 11-20)
+            let col, row;
+            if (i < 10) {
+                // Indices 0 a 9 (Números 1-10) -> Coluna Esquerda (Col 1)
+                col = 1;
+                row = i + 1; // Linhas 1 a 10
+            } else {
+                // Indices 10 a 19 (Números 11-20) -> Coluna Direita (Col 2)
+                col = 2;
+                row = (i - 10) + 1; // Linhas 1 a 10
+            }
+            
+            element.style.gridRow = row;
+            element.style.gridColumn = col;
+        }
+
+        if (i in occupied) {
+            element.classList.add('occupied');
+            element.textContent = occupied[i];
+        } else if (validIndices.includes(i)) {
+            element.classList.add('valid');
+            element.textContent = i + 1;
+            element.onclick = () => colocarNumero(i);
+        } else {
+            element.textContent = i + 1;
+            element.onclick = null;
+        }
+    }
+
+    function gerarNumero() {
+        if (gameOver) return;
+
+        generatedNumber = Math.floor(Math.random() * 999) + 1;
+        
+        dispN.textContent = generatedNumber;
+        dispT.textContent = generatedNumber;
+        
+        dispN.style.color = 'var(--text-color)';
+        dispT.style.color = 'var(--text-color)';
+        
+        statusN.textContent = "Selecione um espaço";
+        statusT.textContent = "Selecione";
+        
+        statusN.style.color = "var(--highlight-text)";
+        statusT.style.color = "var(--highlight-text)";
+
+        let items = Object.entries(occupied).map(([k, v]) => [parseInt(k), v]);
+        items.sort((a, b) => a[1] - b[1]);
+
+        let limitInfIdx = -1;
+        let limitSupIdx = 20;
+
+        for (let [idx, val] of items) {
+            if (val < generatedNumber) {
+                limitInfIdx = idx;
+            } else if (val > generatedNumber) {
+                limitSupIdx = idx;
+                break;
+            }
+        }
+
+        let possibleIndices = [];
+        for (let i = limitInfIdx + 1; i < limitSupIdx; i++) {
+            if (!(i in occupied)) {
+                possibleIndices.push(i);
+            }
+        }
+
+        validIndices = possibleIndices;
+
+        if (validIndices.length === 0) {
+            perder();
+        } else {
+            desenharGrid();
+        }
+    }
+
+    function colocarNumero(idx) {
+        if (gameOver || !validIndices.includes(idx)) return;
+
+        occupied[idx] = generatedNumber;
+        generatedNumber = null;
+        validIndices = [];
+        
+        statusN.textContent = "Número colocado!";
+        statusT.textContent = "OK...";
+        
+        statusN.style.color = "#888";
+        statusT.style.color = "#888";
+        
+        desenharGrid();
+        setTimeout(gerarNumero, 300);
+    }
+
+    function perder() {
+        gameOver = true;
+        let pontuacao = Object.keys(occupied).length;
+        
+        dispN.style.color = 'var(--error-color)';
+        dispT.style.color = 'var(--error-color)';
+        
+        let msg = `PERDEU! ${pontuacao} nums`;
+        statusN.textContent = msg;
+        statusT.textContent = `Perdeu!\n${pontuacao}`;
+        
+        statusN.style.color = 'var(--error-color)';
+        statusT.style.color = 'var(--error-color)';
+        
+        desabilitarBotao(true);
+
+        scores.push(pontuacao);
+        scores.sort((a, b) => b - a);
+        if (scores.length > 10) scores.pop();
+        atualizarScoreboard();
+
+        alert(`Fim de Jogo!\nO número ${dispN.textContent} não coube.\nTotal: ${pontuacao} números.`);
+    }
+
+    function desabilitarBotao(disabled) {
+        btnGenN.disabled = disabled;
+        btnGenT.disabled = disabled;
+        let cor = disabled ? '#333' : 'var(--accent-color)';
+        btnGenN.style.backgroundColor = cor;
+        btnGenT.style.backgroundColor = cor;
+    }
+
+    function reiniciarJogo() {
+        occupied = {};
+        generatedNumber = null;
+        validIndices = [];
+        gameOver = false;
+        
+        dispN.textContent = "";
+        dispT.textContent = "";
+        
+        statusN.textContent = "Clique em Gerar Número";
+        statusT.textContent = "Aguardar...";
+        
+        statusN.style.color = "#888";
+        statusT.style.color = "#888";
+        
+        desabilitarBotao(false);
+        desenharGrid();
+    }
+
+    function atualizarScoreboard() {
+        listN.innerHTML = '';
+        listT.innerHTML = '';
+        
+        if (scores.length === 0) {
+            let liN = document.createElement('li');
+            let liT = document.createElement('li');
+            liN.className = 'score-item';
+            liT.className = 'score-item';
+            liN.textContent = "Nenhuma partida.";
+            liT.textContent = "-";
+            liN.style.color = "#555";
+            liT.style.color = "#555";
+            listN.appendChild(liN);
+            listT.appendChild(liT);
+            return;
+        }
+
+        for (let i = 0; i < scores.length; i++) {
+            let liN = document.createElement('li');
+            let liT = document.createElement('li');
+            liN.className = 'score-item';
+            liT.className = 'score-item';
+            
+            if (layoutMode === 'normal') {
+                liN.textContent = `${i + 1}º Lugar: ${scores[i]} nums`;
+                liT.textContent = `${i + 1}º Lugar: ${scores[i]} nums`;
+            } else {
+                liN.textContent = `${i + 1}º Lugar: ${scores[i]} nums`;
+                liT.textContent = `${scores[i]}`;
+            }
+            listN.appendChild(liN);
+            listT.appendChild(liT);
+        }
+    }
+
+    const originalToggle = toggleLayout;
+    toggleLayout = function() {
+        originalToggle();
+        atualizarScoreboard();
+    }
+
+</script>
+
+</body>
+</html>
