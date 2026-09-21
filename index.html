@@ -9,7 +9,6 @@
             --bg-color: #121212;
             --box-color: #2C2C2C;
             /* VERDE ALTERADO: Mais escuro e menos intenso (#0d2e10) */
-            --valid-color: #64bd92;
             --valid-color: #345243;
             --text-color: #FFFFFF;
             --indicator-color: #666666;
@@ -24,9 +23,9 @@
             font-family: Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
+            min-height: 100vh;
+            min-height: 100dvh;
+            width: 100%;
             display: flex;
             flex-direction: column;
         }
@@ -227,6 +226,78 @@
         dialog p { line-height: 1.6; }
         dialog .btn-generate { margin: 12px 0 0; }
 
+
+        /* Composição fluida: tabuleiro central e respiro maior abaixo do jogo. */
+        * { box-sizing: border-box; }
+        #app {
+            height: auto;
+            padding: clamp(20px, 5vh, 64px) clamp(16px, 4vw, 64px) 32px;
+        }
+        #layout-tiktok { flex-direction: column; height: auto; gap: 18px; }
+        .tiktok-wrapper {
+            display: grid;
+            grid-template-columns: minmax(140px, 1fr) minmax(260px, 400px) minmax(140px, 1fr);
+            align-items: center;
+            max-width: 960px;
+            height: auto;
+            gap: clamp(20px, 3vw, 48px);
+        }
+        .hud-left, .hud-center, .hud-right { width: 100%; height: auto; min-width: 0; }
+        .hud-left { max-width: 180px; justify-self: center; }
+        .hud-right { max-width: 180px; justify-self: center; }
+        .grid-tiktok { height: clamp(494px, 72dvh, 760px); }
+        .quad { min-width: 0; min-height: 44px; touch-action: manipulation; }
+        .quad.occupied { font-size: clamp(24px, 2.4vw, 34px); }
+        .tiktok .hud-left .score-list { height: auto; max-height: 380px; margin-bottom: 0; }
+        .score-title { color: #aaa; line-height: 1.5; }
+        .btn-layout, .btn-restart { min-height: 44px; }
+        .hud-right .btn-generate, .hud-right .btn-restart { width: 100%; }
+        .display-number { min-height: 1.15em; font-variant-numeric: tabular-nums; }
+        .layout-switch { display: flex; justify-content: center; width: 100%; }
+        #layout-normal { height: auto; width: 100%; max-width: 720px; margin: 0 auto; padding: 0; }
+        #layout-normal .display-number { font-size: 40px; margin: 8px 0; }
+        .grid-normal { height: clamp(240px, 42dvh, 440px); }
+        #scoreboard-container { margin-top: 24px; }
+        button:focus-visible, .quad:focus-visible { outline: 3px solid var(--highlight-text); outline-offset: 3px; }
+
+        @media (max-width: 700px) {
+            #app { padding: 16px max(12px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+            #layout-tiktok { gap: 12px; }
+            .tiktok-wrapper { grid-template-columns: minmax(0, 1fr); max-width: 440px; gap: 18px; }
+            .hud-right {
+                grid-row: 1;
+                max-width: none;
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(140px, 1fr);
+                gap: 8px 14px;
+                padding: 12px;
+                border: 1px solid #333;
+                border-radius: 12px;
+                background: #191919;
+            }
+            .hud-right .display-number { grid-column: 1; grid-row: 1; font-size: 42px; margin: 0; }
+            .hud-right .btn-generate { grid-column: 2; grid-row: 1; margin: 0; min-height: 48px; padding: 10px; font-size: 15px; }
+            .hud-right .btn-generate br { display: none; }
+            .hud-right .status-text { grid-column: 1; grid-row: 2; margin: 0; min-height: 0; font-size: 13px; overflow-wrap: anywhere; }
+            .hud-right .btn-restart { grid-column: 2; grid-row: 2; margin: 0; font-size: 12px; }
+            .hud-center { grid-row: 2; }
+            .grid-tiktok { max-width: none; height: clamp(494px, calc(100dvh - 204px), 640px); }
+            .quad.occupied { font-size: 28px; }
+            .hud-left { grid-row: 3; max-width: none; padding-top: 6px; }
+            .tiktok .hud-left .score-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; overflow: visible; }
+            .tiktok .score-item { min-width: 44px; padding: 10px; border: 0; border-radius: 6px; background: #222; }
+            .grid-normal { gap: 5px; height: clamp(240px, 42dvh, 360px); }
+            .grid-normal .quad.occupied { font-size: clamp(20px, 6vw, 28px); }
+            dialog { width: calc(100% - 32px); max-width: 400px; padding: 24px; }
+        }
+        @media (max-height: 500px) and (min-width: 701px) {
+            #app { padding-top: 16px; }
+        }
+
+        .fechar-resultado { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; background: #391b22; color: #ff1744; font-size: 24px; }
+        #god-toggle { position: fixed; left: 0; bottom: 0; width: 48px; height: 48px; padding: 0; background: transparent; border: 0; z-index: 10; }
+        #god-indicador { position: fixed; bottom: 12px; left: 56px; color: #e5ff00; font-size: 11px; pointer-events: none; }
+        #senha-god { display: block; width: 100%; margin: 16px 0; padding: 12px; background: #121212; color: white; border: 1px solid #666; border-radius: 6px; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -268,13 +339,13 @@
 
             <div class="hud-right">
                 <div id="disp-t" class="display-number"></div>
-                <button class="btn-generate" id="btn-generate-t" onclick="gerarNumero()">GERAR<br>NÚMERO</button>
-                <div id="status-t" class="status-text"></div>
+                <button class="btn-generate" id="btn-generate-t" onclick="gerarNumero()">GERAR<br> NÚMERO</button>
+                <div id="status-t" class="status-text" aria-live="polite">Clique em Gerar Número</div>
                 <button class="btn-restart" onclick="reiniciarJogo()">REINICIAR</button>
             </div>
 
         </div>
-        <div style="display: flex; justify-content: center; width: 100%;">
+        <div class="layout-switch">
             <button class="btn-layout" onclick="toggleLayout()">🔄 Layout (Alternativo)</button>
         </div>
     </div>
@@ -282,12 +353,25 @@
 </div>
 
 <dialog id="resultado" aria-labelledby="resultado-titulo" aria-describedby="resultado-texto">
+    <button class="fechar-resultado" aria-label="Fechar resultado e observar o jogo" onclick="document.getElementById('resultado').close()">×</button>
     <h2 id="resultado-titulo"></h2>
     <p id="resultado-texto"></p>
     <p id="resultado-salvamento" role="status"></p>
     <button class="btn-generate" autofocus onclick="reiniciarJogo()">JOGAR NOVAMENTE</button>
 </dialog>
 
+<button id="god-toggle" aria-label="Alternar modo especial" onclick="alternarGodMode()"></button>
+<span id="god-indicador" role="status" hidden>GOD-MODE</span>
+<dialog id="god-acesso" aria-labelledby="god-titulo">
+    <form onsubmit="confirmarGodMode(event)">
+        <h2 id="god-titulo">GOD-MODE</h2>
+        <label for="senha-god">Senha de ativação</label>
+        <input id="senha-god" type="password" autocomplete="off" required>
+        <p id="god-erro" role="alert"></p>
+        <button type="submit" class="btn-generate">ATIVAR</button>
+        <button type="button" class="btn-restart" onclick="document.getElementById('god-acesso').close()">CANCELAR</button>
+    </form>
+</dialog>
 <script>
     let numerosDisponiveis = Array.from({ length: 999 }, (_, i) => i + 1);
     let occupied = {}; 
@@ -298,6 +382,35 @@
     let scores = carregarScores();
     let sorteioTimer = null;
     let layoutMode = 'tiktok';
+    let godMode = false;
+    let usouGodMode = false;
+
+    function alternarGodMode() {
+        if (godMode) {
+            godMode = false;
+            document.getElementById('god-indicador').hidden = true;
+            if (!gameOver && generatedNumber !== null) atualizarPosicoes();
+            return;
+        }
+        document.getElementById('senha-god').value = '';
+        document.getElementById('god-erro').textContent = '';
+        document.getElementById('god-acesso').showModal();
+        document.getElementById('senha-god').focus();
+    }
+
+    function confirmarGodMode(event) {
+        event.preventDefault();
+        if (document.getElementById('senha-god').value !== 'numerosos') {
+            document.getElementById('god-erro').textContent = 'Senha incorreta.';
+            return;
+        }
+        document.getElementById('senha-god').value = '';
+        document.getElementById('god-acesso').close();
+        godMode = true;
+        usouGodMode = true;
+        document.getElementById('god-indicador').hidden = false;
+        if (!gameOver && generatedNumber !== null) atualizarPosicoes();
+    }
 
     const dispN = document.getElementById('disp-n');
     const dispT = document.getElementById('disp-t');
@@ -409,6 +522,15 @@
         statusN.style.color = "var(--highlight-text)";
         statusT.style.color = "var(--highlight-text)";
 
+        atualizarPosicoes();
+    }
+
+    function atualizarPosicoes() {
+        if (godMode) {
+            validIndices = Array.from({ length: 20 }, (_, i) => i).filter(i => !(i in occupied));
+            desenharGrid();
+            return;
+        }
         let items = Object.entries(occupied).map(([k, v]) => [parseInt(k), v]);
         items.sort((a, b) => a[1] - b[1]);
 
@@ -468,7 +590,7 @@
     }
 
     function finalizarJogo(venceu) {
-        if (gameOver) return;
+        if (gameOver || (!venceu && godMode)) return;
         gameOver = true;
         clearTimeout(sorteioTimer);
         sorteioTimer = null;
@@ -482,22 +604,26 @@
         statusN.style.color = cor;
         statusT.style.color = cor;
         desabilitarBotao(true);
-        scores.push(pontuacao);
-        scores.sort((a, b) => b - a);
-        scores = scores.slice(0, 10);
         let salvo = true;
-        try {
-            localStorage.setItem(SCORE_KEY, JSON.stringify(scores));
-        } catch {
-            salvo = false;
+        if (!usouGodMode) {
+            scores.push(pontuacao);
+            scores.sort((a, b) => b - a);
+            scores = scores.slice(0, 10);
+            try {
+                localStorage.setItem(SCORE_KEY, JSON.stringify(scores));
+            } catch {
+                salvo = false;
+            }
         }
         atualizarScoreboard();
         desenharGrid();
         document.getElementById('resultado-titulo').textContent = venceu ? 'Parabéns, você venceu!' : 'Fim de jogo!';
         document.getElementById('resultado-texto').textContent = venceu
-            ? 'Você completou os 20 espaços em ordem. Pontuação: 20 números!'
+            ? 'Você completou os 20 espaços. Pontuação: 20 números!'
             : `O número ${generatedNumber} não coube. Pontuação: ${pontuacao} de 20 números.`;
-        document.getElementById('resultado-salvamento').textContent = salvo
+        document.getElementById('resultado-salvamento').textContent = usouGodMode
+            ? 'Partida com GOD-MODE: não entra nas 10 melhores pontuações.'
+            : salvo
             ? 'Placar salvo neste navegador.'
             : 'Não foi possível salvar no navegador. O placar está disponível nesta sessão.';
         document.getElementById('resultado').showModal();
@@ -532,6 +658,7 @@
         generatedNumber = null;
         validIndices = [];
         gameOver = false;
+        usouGodMode = godMode;
 
         dispN.textContent = "";
         dispT.textContent = "";
