@@ -298,6 +298,14 @@
         #god-toggle { position: fixed; left: 0; bottom: 0; width: 48px; height: 48px; padding: 0; background: transparent; border: 0; z-index: 10; }
         #god-indicador { position: fixed; bottom: 12px; left: 56px; color: #e5ff00; font-size: 11px; pointer-events: none; }
         #senha-god { display: block; width: 100%; margin: 16px 0; padding: 12px; background: #121212; color: white; border: 1px solid #666; border-radius: 6px; font-size: 16px; }
+        .progresso { color: #bbb; font-size: 14px; margin: 0 0 10px; text-align: center; }
+        .explicacao { color: #ff8a9f; font-size: 14px; line-height: 1.5; max-width: 600px; text-align: center; margin: 12px 0; }
+        .quad.bloqueador { box-shadow: inset 0 0 0 3px var(--error-color); background: #48252c; }
+        #cheat-menu { position: fixed; inset: auto auto 60px 12px; margin: 0; width: min(340px, calc(100vw - 24px)); text-align: left; max-height: calc(100dvh - 84px); overflow: auto; padding: 24px; }
+        #cheat-menu h2 { margin: 0 32px 18px 0; font-size: 21px; }
+        .cheat-opcao { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 52px; border-bottom: 1px solid #444; }
+        .cheat-opcao input { width: 22px; height: 22px; accent-color: #2979ff; }
+        #cheat-menu p { font-size: 13px; color: #bbb; }
     </style>
 </head>
 <body>
@@ -313,7 +321,9 @@
 
         <button class="btn-generate" id="btn-generate-n" onclick="gerarNumero()">GERAR NÚMERO</button>
 
+        <div id="progresso-n" class="progresso" role="status">0/20 espaços</div>
         <div class="grid-container grid-normal" id="grid-n"></div>
+        <p id="explicacao-n" class="explicacao" hidden></p>
 
         <div id="scoreboard-container">
             <div class="score-title" style="color:#aaa; font-weight:bold; width:100%; text-align:left; padding-left:10px;">10 MELHORES PONTUAÇÕES</div>
@@ -334,7 +344,9 @@
             </div>
 
             <div class="hud-center">
+                <div id="progresso-t" class="progresso" role="status">0/20 espaços</div>
                 <div class="grid-container grid-tiktok" id="grid-t"></div>
+                <p id="explicacao-t" class="explicacao" hidden></p>
             </div>
 
             <div class="hud-right">
@@ -360,7 +372,7 @@
     <button class="btn-generate" autofocus onclick="reiniciarJogo()">JOGAR NOVAMENTE</button>
 </dialog>
 
-<button id="god-toggle" aria-label="Alternar modo especial" onclick="alternarGodMode()"></button>
+<button id="god-toggle" aria-label="Abrir cheat menu" onclick="abrirCheatMenu()"></button>
 <span id="god-indicador" role="status" hidden>GOD-MODE</span>
 <dialog id="god-acesso" aria-labelledby="god-titulo">
     <form onsubmit="confirmarGodMode(event)">
@@ -372,6 +384,15 @@
         <button type="button" class="btn-restart" onclick="document.getElementById('god-acesso').close()">CANCELAR</button>
     </form>
 </dialog>
+<dialog id="cheat-menu" aria-labelledby="cheat-titulo">
+    <button class="fechar-resultado" aria-label="Fechar cheat menu" onclick="document.getElementById('cheat-menu').close()">×</button>
+    <h2 id="cheat-titulo">Cheat menu</h2>
+    <label class="cheat-opcao" for="cheat-god">GOD-MODE <input id="cheat-god" type="checkbox" onchange="definirGodMode(this.checked)"></label>
+    <label class="cheat-opcao" for="cheat-auto">Reorganização automática <input id="cheat-auto" type="checkbox" onchange="definirReorganizacao(this.checked)"></label>
+    <p>Sem reorganização, você pode colocar o número em qualquer espaço vazio. O tabuleiro não é movido.</p>
+    <p>Partidas que usaram GOD-MODE não entram no ranking.</p>
+    <p id="cheat-aviso" role="status"></p>
+</dialog>
 <script>
     let numerosDisponiveis = Array.from({ length: 999 }, (_, i) => i + 1);
     let occupied = {}; 
@@ -382,20 +403,49 @@
     let scores = carregarScores();
     let sorteioTimer = null;
     let layoutMode = 'tiktok';
+    const GOD_AUTH_KEY = 'nv20-god-autorizado-v1';
+    let godAutorizado = false;
+    try { godAutorizado = localStorage.getItem(GOD_AUTH_KEY) === 'true'; } catch {}
+    let reorganizacaoAutomatica = true;
+    let avisoGod = '';
     let godMode = false;
     let usouGodMode = false;
+    let bloqueadores = [];
+    let explicacaoDerrota = ''; 
 
-    function alternarGodMode() {
-        if (godMode) {
-            godMode = false;
-            document.getElementById('god-indicador').hidden = true;
-            if (!gameOver && generatedNumber !== null) atualizarPosicoes();
+    function abrirCheatMenu() {
+        if (godAutorizado) {
+            sincronizarCheatMenu();
+            document.getElementById('cheat-menu').showModal();
             return;
         }
         document.getElementById('senha-god').value = '';
         document.getElementById('god-erro').textContent = '';
         document.getElementById('god-acesso').showModal();
         document.getElementById('senha-god').focus();
+    }
+
+    function sincronizarCheatMenu() {
+        document.getElementById('cheat-god').checked = godMode;
+        document.getElementById('cheat-auto').checked = reorganizacaoAutomatica;
+        document.getElementById('cheat-auto').disabled = !godMode;
+        document.getElementById('god-indicador').hidden = !godMode;
+        document.getElementById('cheat-aviso').textContent = avisoGod;
+    }
+
+    function definirGodMode(ativo) {
+        if (!godAutorizado) return;
+        godMode = ativo;
+        if (ativo) usouGodMode = true;
+        sincronizarCheatMenu();
+        if (!gameOver && generatedNumber !== null) atualizarPosicoes();
+    }
+
+    function definirReorganizacao(ativa) {
+        if (!godAutorizado || !godMode) return;
+        reorganizacaoAutomatica = ativa;
+        sincronizarCheatMenu();
+        if (!gameOver && generatedNumber !== null) atualizarPosicoes();
     }
 
     function confirmarGodMode(event) {
@@ -406,10 +456,12 @@
         }
         document.getElementById('senha-god').value = '';
         document.getElementById('god-acesso').close();
-        godMode = true;
-        usouGodMode = true;
-        document.getElementById('god-indicador').hidden = false;
-        if (!gameOver && generatedNumber !== null) atualizarPosicoes();
+        godAutorizado = true;
+        try { localStorage.setItem(GOD_AUTH_KEY, 'true'); } catch {
+            avisoGod = 'O navegador não permitiu salvar o acesso. A senha será lembrada apenas nesta sessão.';
+        }
+        definirGodMode(true);
+        abrirCheatMenu();
     }
 
     const dispN = document.getElementById('disp-n');
@@ -446,6 +498,12 @@
     }
 
     function desenharGrid() {
+        for (const sufixo of ['n', 't']) {
+            document.getElementById('progresso-' + sufixo).textContent = Object.keys(occupied).length + '/20 espaços';
+            const explicacao = document.getElementById('explicacao-' + sufixo);
+            explicacao.textContent = explicacaoDerrota;
+            explicacao.hidden = !explicacaoDerrota;
+        }
         gridN.innerHTML = '';
         gridT.innerHTML = '';
 
@@ -480,6 +538,10 @@
 
         if (i in occupied) {
             element.classList.add('occupied');
+            if (bloqueadores.includes(i)) {
+                element.classList.add('bloqueador');
+                element.title = 'Este número bloqueou a última jogada.';
+            }
             element.textContent = occupied[i];
         } else if (validIndices.includes(i)) {
             element.classList.add('valid');
@@ -526,11 +588,21 @@
     }
 
     function atualizarPosicoes() {
-        if (godMode) {
+        if (gameOver || generatedNumber === null) return;
+        if (godMode && !reorganizacaoAutomatica) {
             validIndices = Array.from({ length: 20 }, (_, i) => i).filter(i => !(i in occupied));
+            statusN.textContent = 'GOD-MODE: escolha qualquer espaço vazio.';
+            statusT.textContent = statusN.textContent;
             desenharGrid();
             return;
         }
+        const valoresAtuais = Object.values(occupied);
+        if (godMode && valoresAtuais.some((v, i) => i > 0 && v < valoresAtuais[i - 1])) {
+            reorganizarGodMode();
+            return;
+        }
+        statusN.textContent = 'Selecione um espaço';
+        statusT.textContent = 'Selecione';
         let items = Object.entries(occupied).map(([k, v]) => [parseInt(k), v]);
         items.sort((a, b) => a[1] - b[1]);
 
@@ -556,10 +628,37 @@
         validIndices = possibleIndices;
 
         if (validIndices.length === 0) {
+            if (godMode) {
+                reorganizarGodMode();
+                return;
+            }
+            bloqueadores = [limitInfIdx, limitSupIdx].filter(i => i >= 0 && i < 20);
+            if (limitInfIdx === -1) {
+                explicacaoDerrota = 'O número ' + generatedNumber + ' precisava ficar antes de ' + occupied[limitSupIdx] + ', mas não há espaço antes dele.';
+            } else if (limitSupIdx === 20) {
+                explicacaoDerrota = 'O número ' + generatedNumber + ' precisava ficar depois de ' + occupied[limitInfIdx] + ', mas não há espaço depois dele.';
+            } else {
+                explicacaoDerrota = 'O número ' + generatedNumber + ' precisava ficar entre ' + occupied[limitInfIdx] + ' e ' + occupied[limitSupIdx] + ', mas não há espaço entre eles.';
+            }
             perder();
         } else {
             desenharGrid();
         }
+    }
+
+    // Redistribui em ordem, reservando uma posição para o número pendente.
+    function reorganizarGodMode() {
+        const valores = [...Object.values(occupied), generatedNumber].sort((a, b) => a - b);
+        occupied = {};
+        validIndices = [];
+        valores.forEach((valor, ordem) => {
+            const idx = valores.length === 1 ? 9 : Math.round(ordem * 19 / (valores.length - 1));
+            if (valor === generatedNumber) validIndices.push(idx);
+            else occupied[idx] = valor;
+        });
+        statusN.textContent = 'Tabuleiro reorganizado. Coloque o número no espaço destacado.';
+        statusT.textContent = statusN.textContent;
+        desenharGrid();
     }
 
     function colocarNumero(idx) {
@@ -620,12 +719,13 @@
         document.getElementById('resultado-titulo').textContent = venceu ? 'Parabéns, você venceu!' : 'Fim de jogo!';
         document.getElementById('resultado-texto').textContent = venceu
             ? 'Você completou os 20 espaços. Pontuação: 20 números!'
-            : `O número ${generatedNumber} não coube. Pontuação: ${pontuacao} de 20 números.`;
+            : `O número ${generatedNumber} não coube. Pontuação: ${pontuacao} de 20 números. ${explicacaoDerrota}`;
         document.getElementById('resultado-salvamento').textContent = usouGodMode
             ? 'Partida com GOD-MODE: não entra nas 10 melhores pontuações.'
             : salvo
             ? 'Placar salvo neste navegador.'
             : 'Não foi possível salvar no navegador. O placar está disponível nesta sessão.';
+        document.getElementById('cheat-menu').close();
         document.getElementById('resultado').showModal();
     }
 
@@ -659,6 +759,8 @@
         validIndices = [];
         gameOver = false;
         usouGodMode = godMode;
+        bloqueadores = [];
+        explicacaoDerrota = ''; 
 
         dispN.textContent = "";
         dispT.textContent = "";
