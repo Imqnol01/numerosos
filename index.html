@@ -8,7 +8,6 @@
         :root {
             --bg-color: #121212;
             --box-color: #2C2C2C;
-            /* VERDE ALTERADO: Mais escuro e menos intenso (#0d2e10) */
             --valid-color: #345243;
             --text-color: #FFFFFF;
             --indicator-color: #666666;
@@ -276,10 +275,15 @@
                 background: #191919;
             }
             .hud-right .display-number { grid-column: 1; grid-row: 1; font-size: 42px; margin: 0; }
-            .hud-right .btn-generate { grid-column: 2; grid-row: 1; margin: 0; min-height: 48px; padding: 10px; font-size: 15px; }
+            .hud-right .btn-generate { grid-column: 2; grid-row: 2; margin: 0; min-height: 48px; padding: 10px; font-size: 15px; }
             .hud-right .btn-generate br { display: none; }
             .hud-right .status-text { grid-column: 1; grid-row: 2; margin: 0; min-height: 0; font-size: 13px; overflow-wrap: anywhere; }
-            .hud-right .btn-restart { grid-column: 2; grid-row: 2; margin: 0; font-size: 12px; }
+            .hud-right .btn-restart { grid-column: 2; grid-row: 1; margin: 0; font-size: 12px; }
+            #layout-normal > .btn-layout { order: -5; }
+            #layout-normal > .display-number { order: -4; }
+            #layout-normal > .status-text { order: -3; }
+            #layout-normal > .btn-restart { order: -2; margin: 0 0 15px; }
+            #layout-normal > .btn-generate { order: 1; margin: 15px 0 0; }
             .hud-center { grid-row: 2; }
             .grid-tiktok { max-width: none; height: clamp(494px, calc(100dvh - 204px), 640px); }
             .quad.occupied { font-size: 28px; }
@@ -390,6 +394,7 @@
     <label class="cheat-opcao" for="cheat-god">GOD-MODE <input id="cheat-god" type="checkbox" onchange="definirGodMode(this.checked)"></label>
     <label class="cheat-opcao" for="cheat-auto">Reorganização automática <input id="cheat-auto" type="checkbox" onchange="definirReorganizacao(this.checked)"></label>
     <p>Sem reorganização, você pode colocar o número em qualquer espaço vazio. O tabuleiro não é movido.</p>
+    <p>Ao desativar, os números voltam à ordem crescente nas casas ocupadas. As regras normais voltam a valer, inclusive para o número pendente.</p>
     <p>Partidas que usaram GOD-MODE não entram no ranking.</p>
     <p id="cheat-aviso" role="status"></p>
 </dialog>
@@ -435,6 +440,13 @@
 
     function definirGodMode(ativo) {
         if (!godAutorizado) return;
+        // Ao voltar às regras normais, preserva as casas ocupadas e ordena seus valores.
+        if (godMode && !ativo && !gameOver) {
+            const indices = Object.keys(occupied).map(Number).sort((a, b) => a - b);
+            const valores = Object.values(occupied).sort((a, b) => a - b);
+            indices.forEach((idx, i) => { occupied[idx] = valores[i]; });
+            desenharGrid();
+        }
         godMode = ativo;
         if (ativo) usouGodMode = true;
         sincronizarCheatMenu();
@@ -495,6 +507,7 @@
         }
 
         desenharGrid();
+        atualizarScoreboard();
     }
 
     function desenharGrid() {
@@ -775,6 +788,7 @@
 
         desabilitarBotao(false);
         desenharGrid();
+        gerarNumero();
     }
 
     function atualizarScoreboard() {
@@ -801,22 +815,11 @@
             liN.className = 'score-item';
             liT.className = 'score-item';
 
-            if (layoutMode === 'normal') {
-                liN.textContent = `${i + 1}º Lugar: ${scores[i]} nums`;
-                liT.textContent = `${i + 1}º Lugar: ${scores[i]} nums`;
-            } else {
-                liN.textContent = `${i + 1}º Lugar: ${scores[i]} nums`;
-                liT.textContent = `${scores[i]}`;
-            }
+            liN.textContent = `${i + 1}º Lugar: ${scores[i]} nums`;
+            liT.textContent = layoutMode === 'normal' ? liN.textContent : String(scores[i]);
             listN.appendChild(liN);
             listT.appendChild(liT);
         }
-    }
-
-    const originalToggle = toggleLayout;
-    toggleLayout = function() {
-        originalToggle();
-        atualizarScoreboard();
     }
 
 </script>
