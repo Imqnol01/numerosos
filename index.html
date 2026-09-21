@@ -213,7 +213,19 @@
             background-color: transparent;
             text-align: center;
         }
-        .tiktok .hud-left .score-title { display: none; }
+        .score-title { text-align: center; font-size: 13px; }
+        dialog {
+            background: #222;
+            color: var(--text-color);
+            border: 1px solid #555;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: min(400px, 80vw);
+            text-align: center;
+        }
+        dialog::backdrop { background: rgba(0, 0, 0, 0.75); }
+        dialog p { line-height: 1.6; }
+        dialog .btn-generate { margin: 12px 0 0; }
 
     </style>
 </head>
@@ -233,7 +245,7 @@
         <div class="grid-container grid-normal" id="grid-n"></div>
 
         <div id="scoreboard-container">
-            <div class="score-title" style="color:#555; font-weight:bold; width:100%; text-align:left; padding-left:10px;">ÚLTIMAS 10 PARTIDAS</div>
+            <div class="score-title" style="color:#aaa; font-weight:bold; width:100%; text-align:left; padding-left:10px;">10 MELHORES PONTUAÇÕES</div>
             <ul id="list-n" class="score-list"></ul>
         </div>
 
@@ -246,7 +258,7 @@
         <div class="tiktok-wrapper">
 
             <div class="hud-left">
-                <div class="score-title">RECORDS</div>
+                <div class="score-title">10 MELHORES PONTUAÇÕES</div>
                 <ul id="list-t" class="score-list"></ul>
             </div>
 
@@ -269,12 +281,22 @@
 
 </div>
 
+<dialog id="resultado" aria-labelledby="resultado-titulo" aria-describedby="resultado-texto">
+    <h2 id="resultado-titulo"></h2>
+    <p id="resultado-texto"></p>
+    <p id="resultado-salvamento" role="status"></p>
+    <button class="btn-generate" autofocus onclick="reiniciarJogo()">JOGAR NOVAMENTE</button>
+</dialog>
+
 <script>
+    let numerosDisponiveis = Array.from({ length: 999 }, (_, i) => i + 1);
     let occupied = {}; 
     let generatedNumber = null;
     let validIndices = [];
     let gameOver = false;
-    let scores = [];
+    const SCORE_KEY = 'nv20-melhores-pontuacoes-v1';
+    let scores = carregarScores();
+    let sorteioTimer = null;
     let layoutMode = 'tiktok';
 
     const dispN = document.getElementById('disp-n');
@@ -356,9 +378,24 @@
         }
     }
 
+    // Retira o número sorteado da lista para não repeti-lo nesta partida.
+    function sortearNumeroSemRepetir() {
+        if (numerosDisponiveis.length === 0) return null;
+        const indice = Math.floor(Math.random() * numerosDisponiveis.length);
+        return numerosDisponiveis.splice(indice, 1)[0];
+    }
+
     function gerarNumero() {
-        if (gameOver) return;
-        generatedNumber = Math.floor(Math.random() * 999) + 1;
+        if (gameOver || generatedNumber !== null || sorteioTimer !== null) return;
+        desabilitarBotao(true);
+        const novoNumero = sortearNumeroSemRepetir();
+        if (novoNumero === null) {
+            statusN.textContent = "Todos os números já foram sorteados. Reinicie o jogo.";
+            statusT.textContent = statusN.textContent;
+            desabilitarBotao(true);
+            return;
+        }
+        generatedNumber = novoNumero;
 
         dispN.textContent = generatedNumber;
         dispT.textContent = generatedNumber;
@@ -404,7 +441,7 @@
     }
 
     function colocarNumero(idx) {
-        if (gameOver || !validIndices.includes(idx)) return;
+        if (gameOver || generatedNumber === null || !validIndices.includes(idx)) return;
         occupied[idx] = generatedNumber;
         generatedNumber = null;
         validIndices = [];
@@ -416,31 +453,66 @@
         statusT.style.color = "#888";
 
         desenharGrid();
-        setTimeout(gerarNumero, 300);
+        if (Object.keys(occupied).length === 20) {
+            finalizarJogo(true);
+            return;
+        }
+        sorteioTimer = setTimeout(() => {
+            sorteioTimer = null;
+            gerarNumero();
+        }, 300);
     }
 
     function perder() {
+        finalizarJogo(false);
+    }
+
+    function finalizarJogo(venceu) {
+        if (gameOver) return;
         gameOver = true;
-        let pontuacao = Object.keys(occupied).length;
-
-        dispN.style.color = 'var(--error-color)';
-        dispT.style.color = 'var(--error-color)';
-
-        let msg = `PERDEU! Pontuação:${pontuacao} nums`;
-        statusN.textContent = msg;
-        statusT.textContent = `Perdeu! Pontuação:\n${pontuacao}`;
-
-        statusN.style.color = 'var(--error-color)';
-        statusT.style.color = 'var(--error-color)';
-
+        clearTimeout(sorteioTimer);
+        sorteioTimer = null;
+        validIndices = [];
+        const pontuacao = Object.keys(occupied).length;
+        const cor = venceu ? 'var(--highlight-text)' : 'var(--error-color)';
+        dispN.style.color = cor;
+        dispT.style.color = cor;
+        statusN.textContent = venceu ? 'Parabéns, você venceu!' : `Perdeu! Pontuação: ${pontuacao}`;
+        statusT.textContent = statusN.textContent;
+        statusN.style.color = cor;
+        statusT.style.color = cor;
         desabilitarBotao(true);
-
         scores.push(pontuacao);
         scores.sort((a, b) => b - a);
-        if (scores.length > 10) scores.pop();
+        scores = scores.slice(0, 10);
+        let salvo = true;
+        try {
+            localStorage.setItem(SCORE_KEY, JSON.stringify(scores));
+        } catch {
+            salvo = false;
+        }
         atualizarScoreboard();
+        desenharGrid();
+        document.getElementById('resultado-titulo').textContent = venceu ? 'Parabéns, você venceu!' : 'Fim de jogo!';
+        document.getElementById('resultado-texto').textContent = venceu
+            ? 'Você completou os 20 espaços em ordem. Pontuação: 20 números!'
+            : `O número ${generatedNumber} não coube. Pontuação: ${pontuacao} de 20 números.`;
+        document.getElementById('resultado-salvamento').textContent = salvo
+            ? 'Placar salvo neste navegador.'
+            : 'Não foi possível salvar no navegador. O placar está disponível nesta sessão.';
+        document.getElementById('resultado').showModal();
+    }
 
-        alert(`Fim de Jogo!\nO número ${dispN.textContent} não coube.\nTotal: ${pontuacao} números.`);
+    function carregarScores() {
+        try {
+            const salvos = JSON.parse(localStorage.getItem(SCORE_KEY) || '[]');
+            return Array.isArray(salvos)
+                ? salvos.filter(n => Number.isInteger(n) && n >= 0 && n <= 20)
+                    .sort((a, b) => b - a).slice(0, 10)
+                : [];
+        } catch {
+            return [];
+        }
     }
 
     function desabilitarBotao(disabled) {
@@ -452,6 +524,10 @@
     }
 
     function reiniciarJogo() {
+        clearTimeout(sorteioTimer);
+        sorteioTimer = null;
+        document.getElementById('resultado').close();
+        numerosDisponiveis = Array.from({ length: 999 }, (_, i) => i + 1);
         occupied = {};
         generatedNumber = null;
         validIndices = [];
@@ -459,6 +535,8 @@
 
         dispN.textContent = "";
         dispT.textContent = "";
+        dispN.style.color = 'var(--text-color)';
+        dispT.style.color = 'var(--text-color)';
 
         statusN.textContent = "Clique em Gerar Número";
         statusT.textContent = "Aguardar...";
